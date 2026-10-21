@@ -44,8 +44,8 @@ endfunction()
 
 # ── Auto: resolve provider based on platform availability ──
 set(_aurora_dawn_provider "${AURORA_DAWN_PROVIDER}")
-if (AURORA_EXPERIMENTAL_DESKTOP_GL_BACKEND AND _aurora_dawn_provider STREQUAL "auto")
-  # A prebuilt Dawn package cannot gain a backend through CMake cache variables.
+if (AURORA_EXPERIMENTAL_DESKTOP_GL_BACKEND AND NOT _aurora_dawn_provider STREQUAL "vendor")
+  # A prebuilt/system Dawn cannot gain a backend through CMake cache variables.
   # Opting into this experiment therefore requires a source build of Dawn.
   set(_aurora_dawn_provider "vendor")
   set(AURORA_DAWN_PROVIDER "vendor" CACHE STRING "" FORCE)
