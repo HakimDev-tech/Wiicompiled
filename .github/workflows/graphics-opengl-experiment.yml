@@ -36,8 +36,10 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends \
             build-essential clang cmake ninja-build git python3 \
-            pkg-config libgl1-mesa-dev libegl1-mesa-dev libgles2-mesa-dev \
-            libx11-dev libxext-dev libxrandr-dev libxcursor-dev libxfixes-dev \
+            pkg-config libgl1-mesa-dev libegl1-mesa-dev libgles2-mesa-dev libvulkan-dev \
+            libx11-dev libx11-xcb-dev libxext-dev libxrandr-dev libxcursor-dev libxfixes-dev \
+            libxcb-dri3-dev libxcb-present-dev libxcb-randr0-dev libxcb-xfixes0-dev \
+            libxcb-shm0-dev libxcb-sync-dev libxcb-xinput-dev \
             libxi-dev libxss-dev libxtst-dev libxkbcommon-dev libdrm-dev libgbm-dev \
             libdbus-1-dev libibus-1.0-dev libudev-dev libwayland-dev libdecor-0-dev \
             libasound2-dev libpulse-dev libaudio-dev libfribidi-dev libjack-dev \
