@@ -54,7 +54,7 @@ jobs:
       - name: Configure runtime with source-built Dawn desktop OpenGL
         shell: bash
         run: |
-          set -euo pipefail
+          set -o pipefail
           cmake -S runtime -B build-gl -G Ninja \
             -DCMAKE_BUILD_TYPE=Release \
             -DCMAKE_C_COMPILER=clang \
@@ -62,7 +62,7 @@ jobs:
             -DMKW_BUILD_PRODUCTS=OFF \
             -DAURORA_EXPERIMENTAL_DESKTOP_GL_BACKEND=ON \
             -DAURORA_DAWN_PROVIDER=vendor \
-            -DAURORA_DAWN_LINKAGE=static
+            -DAURORA_DAWN_LINKAGE=static 2>&1 | tee build-gl-configure.log
 
       - name: Assert the experimental backend was enabled
         shell: bash
@@ -72,19 +72,26 @@ jobs:
           grep -E '^AURORA_DAWN_PROVIDER:STRING=vendor$' build-gl/CMakeCache.txt
           grep -E '^DAWN_ENABLE_DESKTOP_GL:BOOL=ON$' build-gl/CMakeCache.txt
 
-      - name: Compile Aurora GX and its graphics dependencies
+      - name: Compile Dawn with desktop OpenGL
         shell: bash
         run: |
           set -o pipefail
-          cmake --build build-gl --target aurora_gx --parallel 2 2>&1 | tee build-gl-build.log
+          cmake --build build-gl --target webgpu_dawn --parallel 2 2>&1 | tee build-gl-build.log
 
-      - name: Upload configure cache and build log
+      - name: Compile Aurora GX against the experimental Dawn build
+        shell: bash
+        run: |
+          set -o pipefail
+          cmake --build build-gl --target aurora_gx --parallel 2 2>&1 | tee -a build-gl-build.log
+
+      - name: Upload configure cache and build logs
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: graphics-opengl-experiment-${{ github.run_id }}
           path: |
             build-gl/CMakeCache.txt
+            build-gl-configure.log
             build-gl-build.log
           if-no-files-found: warn
           retention-days: 7
