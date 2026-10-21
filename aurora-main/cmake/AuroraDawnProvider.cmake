@@ -1,5 +1,8 @@
 include_guard(GLOBAL)
 
+option(AURORA_EXPERIMENTAL_DESKTOP_GL_BACKEND
+  "Build Dawn from source with its experimental desktop OpenGL backend enabled" OFF)
+
 # Resolve Dawn/WebGPU dependency based on AURORA_DAWN_PROVIDER and AURORA_DAWN_LINKAGE.
 #
 # After this module runs:
@@ -41,6 +44,13 @@ endfunction()
 
 # ── Auto: resolve provider based on platform availability ──
 set(_aurora_dawn_provider "${AURORA_DAWN_PROVIDER}")
+if (AURORA_EXPERIMENTAL_DESKTOP_GL_BACKEND AND _aurora_dawn_provider STREQUAL "auto")
+  # A prebuilt Dawn package cannot gain a backend through CMake cache variables.
+  # Opting into this experiment therefore requires a source build of Dawn.
+  set(_aurora_dawn_provider "vendor")
+  set(AURORA_DAWN_PROVIDER "vendor" CACHE STRING "" FORCE)
+  message(STATUS "aurora: experimental desktop OpenGL requested; building Dawn from source")
+endif ()
 if (_aurora_dawn_provider STREQUAL "auto")
   # Prebuilt Dawn packages available for: windows-{amd64,arm64}, linux-{x86_64,aarch64}, darwin-{arm64,x86_64}
   set(_has_package FALSE)
@@ -83,8 +93,12 @@ if (_aurora_dawn_provider STREQUAL "vendor")
     set(DAWN_BUILD_SAMPLES OFF CACHE INTERNAL "Disable Dawn sample applications")
     set(DAWN_BUILD_BENCHMARKS OFF CACHE INTERNAL "Disable Dawn benchmarks")
     set(DAWN_SUPPORTS_GLFW_FOR_WINDOWING OFF CACHE INTERNAL "Disable Dawn GLFW windowing")
-    set(DAWN_ENABLE_DESKTOP_GL OFF CACHE INTERNAL "Enable compilation of the OpenGL backend")
-    set(DAWN_ENABLE_OPENGLES OFF CACHE INTERNAL "Enable compilation of the OpenGL ES backend")
+    if (AURORA_EXPERIMENTAL_DESKTOP_GL_BACKEND)
+      set(DAWN_ENABLE_DESKTOP_GL ON CACHE BOOL "Enable Dawn desktop OpenGL backend" FORCE)
+    else ()
+      set(DAWN_ENABLE_DESKTOP_GL OFF CACHE BOOL "Enable Dawn desktop OpenGL backend" FORCE)
+    endif ()
+    set(DAWN_ENABLE_OPENGLES OFF CACHE BOOL "Enable compilation of the OpenGL ES backend" FORCE)
     set(DAWN_FETCH_DEPENDENCIES ON CACHE INTERNAL
       "Use fetch_dawn_dependencies.py as an alternative to using depot_tools")
     if (CMAKE_SYSTEM_NAME STREQUAL Linux)
