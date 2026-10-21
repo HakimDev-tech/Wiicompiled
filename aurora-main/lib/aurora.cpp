@@ -615,6 +615,11 @@ constexpr std::array PreferredBackendOrder{
 #ifdef ENABLE_BACKEND_WEBGPU
     BACKEND_WEBGPU,
 #endif
+#ifdef DAWN_ENABLE_BACKEND_DESKTOP_GL
+    // Experimental compatibility path for older GPUs whose drivers expose OpenGL
+    // but not a usable Vulkan/D3D12 adapter. Only compiled when Dawn's GL backend is enabled.
+    BACKEND_OPENGL,
+#endif
 #ifdef DAWN_ENABLE_BACKEND_D3D12
     BACKEND_D3D12,
 #endif
