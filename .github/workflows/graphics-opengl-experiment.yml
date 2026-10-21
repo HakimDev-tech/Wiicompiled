@@ -1,0 +1,90 @@
+name: Experimental desktop OpenGL backend
+
+on:
+  push:
+    branches:
+      - feature/graphics-api-abstraction
+    paths:
+      - ".github/workflows/graphics-opengl-experiment.yml"
+      - "aurora-main/**"
+      - "runtime/**"
+      - "docs/graphics-backend-experiment.md"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: graphics-opengl-experiment-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  linux-desktop-gl-compile:
+    name: Dawn desktop OpenGL — configure and compile
+    runs-on: ubuntu-24.04
+    timeout-minutes: 150
+
+    steps:
+      - name: Checkout experimental branch
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          fetch-depth: 1
+
+      - name: Install native build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            build-essential clang cmake ninja-build git python3 \
+            pkg-config libgl1-mesa-dev libegl1-mesa-dev libgles2-mesa-dev \
+            libx11-dev libxext-dev libxrandr-dev libxcursor-dev libxfixes-dev \
+            libxi-dev libxss-dev libxtst-dev libxkbcommon-dev libdrm-dev libgbm-dev \
+            libdbus-1-dev libibus-1.0-dev libudev-dev libwayland-dev libdecor-0-dev \
+            libasound2-dev libpulse-dev libaudio-dev libfribidi-dev libjack-dev \
+            libsndio-dev libpipewire-0.3-dev libthai-dev libusb-1.0-0-dev liburing-dev
+
+      - name: Verify toolchain
+        run: |
+          clang --version
+          clang++ --version
+          cmake --version
+          ninja --version
+          python3 --version
+
+      - name: Configure runtime with source-built Dawn desktop OpenGL
+        shell: bash
+        run: |
+          set -euo pipefail
+          cmake -S runtime -B build-gl -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_C_COMPILER=clang \
+            -DCMAKE_CXX_COMPILER=clang++ \
+            -DMKW_BUILD_PRODUCTS=OFF \
+            -DAURORA_EXPERIMENTAL_DESKTOP_GL_BACKEND=ON \
+            -DAURORA_DAWN_PROVIDER=vendor \
+            -DAURORA_DAWN_LINKAGE=static
+
+      - name: Assert the experimental backend was enabled
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -E '^AURORA_EXPERIMENTAL_DESKTOP_GL_BACKEND:BOOL=ON$' build-gl/CMakeCache.txt
+          grep -E '^AURORA_DAWN_PROVIDER:STRING=vendor$' build-gl/CMakeCache.txt
+          grep -E '^DAWN_ENABLE_DESKTOP_GL:BOOL=ON$' build-gl/CMakeCache.txt
+
+      - name: Compile Aurora GX and its graphics dependencies
+        shell: bash
+        run: |
+          set -o pipefail
+          cmake --build build-gl --target aurora_gx --parallel 2 2>&1 | tee build-gl-build.log
+
+      - name: Upload configure cache and build log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: graphics-opengl-experiment-${{ github.run_id }}
+          path: |
+            build-gl/CMakeCache.txt
+            build-gl-build.log
+          if-no-files-found: warn
+          retention-days: 7
